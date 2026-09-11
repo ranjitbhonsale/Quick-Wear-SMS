@@ -80,10 +80,11 @@ jobs:
           path: build-artifacts
 
       - name: Deploy AAB to Google Play Store
-        uses: rslang/play-publisher@v3
+        uses: rpk/google-play-action@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: work.ranjit.quicksmswear
           releaseFiles: build-artifacts/*.aab
           track: internal
           status: completed
+
