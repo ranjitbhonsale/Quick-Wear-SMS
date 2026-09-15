@@ -23,6 +23,7 @@ enum class Screen {
 @Composable
 fun AppNavigation(
     onRequestPermission: () -> Unit,
+    onPickContactFromPhonebook: () -> Unit,
     viewModel: QuickSmsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -53,8 +54,12 @@ fun AppNavigation(
                 ManageContactsScreen(
                     contacts = uiState.contacts,
                     templates = uiState.templates,
+                    onPickFromPhonebook = onPickContactFromPhonebook,
                     onAddContact = { name, phone, msg ->
                         viewModel.addContact(name, phone, msg)
+                    },
+                    onUpdateContact = { contact ->
+                        viewModel.updateContact(contact)
                     },
                     onDeleteContact = { id ->
                         viewModel.deleteContact(id)

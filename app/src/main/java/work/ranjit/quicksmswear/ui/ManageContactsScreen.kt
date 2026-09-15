@@ -2,6 +2,7 @@ package work.ranjit.quicksmswear.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,12 +36,15 @@ import work.ranjit.quicksmswear.data.SmsTemplate
 fun ManageContactsScreen(
     contacts: List<Contact>,
     templates: List<SmsTemplate>,
+    onPickFromPhonebook: () -> Unit,
     onAddContact: (String, String, String) -> Unit,
+    onUpdateContact: (Contact) -> Unit,
     onDeleteContact: (String) -> Unit,
     onAddTemplate: (String) -> Unit,
     onBack: () -> Unit
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
+    var selectedContactForEdit by remember { mutableStateOf<Contact?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         ScalingLazyColumn(
@@ -50,7 +54,7 @@ fun ManageContactsScreen(
             item {
                 ListHeader {
                     Text(
-                        text = "⚙️ Settings",
+                        text = "⚙️ Contact Settings",
                         style = MaterialTheme.typography.title3,
                         color = MaterialTheme.colors.primary,
                         fontWeight = FontWeight.Bold
@@ -58,26 +62,49 @@ fun ManageContactsScreen(
                 }
             }
 
+            // 1. Pick directly from Phone contacts on Wear OS
             item {
                 Chip(
-                    onClick = { showAddDialog = true },
+                    onClick = onPickFromPhonebook,
                     colors = ChipDefaults.primaryChipColors(
                         backgroundColor = MaterialTheme.colors.primary
                     ),
                     label = {
                         Text(
-                            text = "+ Add Quick Contact",
+                            text = "📇 Pick from Device Contacts",
                             color = Color.Black,
                             fontWeight = FontWeight.Bold
                         )
                     },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    secondaryLabel = {
+                        Text(
+                            text = "Select from watch phonebook",
+                            fontSize = 10.sp,
+                            color = Color.Black.copy(alpha = 0.7f)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                )
+            }
+
+            // 2. Add preset target
+            item {
+                Chip(
+                    onClick = { showAddDialog = true },
+                    colors = ChipDefaults.secondaryChipColors(),
+                    label = {
+                        Text(
+                            text = "+ Add Preset Contact",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                 )
             }
 
             item {
                 Text(
-                    text = "SAVED CONTACTS",
+                    text = "SAVED CONTACTS (TAP TO EDIT)",
                     style = MaterialTheme.typography.caption2,
                     color = Color.Gray,
                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
@@ -86,7 +113,7 @@ fun ManageContactsScreen(
 
             items(contacts) { contact ->
                 Chip(
-                    onClick = { onDeleteContact(contact.id) },
+                    onClick = { selectedContactForEdit = contact },
                     colors = ChipDefaults.secondaryChipColors(),
                     label = {
                         Text(
@@ -98,10 +125,11 @@ fun ManageContactsScreen(
                     },
                     secondaryLabel = {
                         Text(
-                            text = "${contact.phoneNumber} (Tap to delete)",
+                            text = "${contact.phoneNumber} • \"${contact.defaultMessage}\"",
                             fontSize = 10.sp,
-                            color = Color.Red,
-                            maxLines = 1
+                            color = Color.LightGray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
@@ -133,6 +161,111 @@ fun ManageContactsScreen(
                 onDismiss = { showAddDialog = false }
             )
         }
+
+        selectedContactForEdit?.let { contact ->
+            EditContactOverlay(
+                contact = contact,
+                templates = templates,
+                onUpdateMessage = { newMsg ->
+                    onUpdateContact(contact.copy(defaultMessage = newMsg))
+                    selectedContactForEdit = null
+                },
+                onDelete = {
+                    onDeleteContact(contact.id)
+                    selectedContactForEdit = null
+                },
+                onDismiss = { selectedContactForEdit = null }
+            )
+        }
+    }
+}
+
+@Composable
+fun EditContactOverlay(
+    contact: Contact,
+    templates: List<SmsTemplate>,
+    onUpdateMessage: (String) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.95f))
+            .padding(12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        ScalingLazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 16.dp)
+        ) {
+            item {
+                ListHeader {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = contact.name,
+                            style = MaterialTheme.typography.title3,
+                            color = MaterialTheme.colors.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = contact.phoneNumber,
+                            style = MaterialTheme.typography.caption1,
+                            color = Color.LightGray
+                        )
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    text = "CHANGE DEFAULT MESSAGE",
+                    style = MaterialTheme.typography.caption2,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
+                )
+            }
+
+            items(templates) { template ->
+                Chip(
+                    onClick = { onUpdateMessage(template.text) },
+                    colors = ChipDefaults.secondaryChipColors(),
+                    label = {
+                        Text(
+                            text = template.text,
+                            style = MaterialTheme.typography.body2,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            item {
+                Chip(
+                    onClick = onDelete,
+                    colors = ChipDefaults.chipColors(backgroundColor = Color(0xFFD32F2F)),
+                    label = {
+                        Text("🗑️ Delete Contact", color = Color.White, fontWeight = FontWeight.Bold)
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                )
+            }
+
+            item {
+                Chip(
+                    onClick = onDismiss,
+                    colors = ChipDefaults.chipColors(backgroundColor = Color.DarkGray),
+                    label = { Text("Cancel", color = Color.White) },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                )
+            }
+        }
     }
 }
 
@@ -141,9 +274,8 @@ fun QuickAddContactOverlay(
     onSave: (String, String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Quick preset options for Wear OS input convenience
     val presets = listOf(
-        Triple("Wife/Husband", "+15550111", "Heading back home!"),
+        Triple("Spouse / Partner", "+15550111", "Heading back home!"),
         Triple("Best Friend", "+15550222", "Let's catch up!"),
         Triple("Doctor / Medical", "+15550333", "Requesting callback."),
         Triple("Work Contact", "+15550444", "In a meeting right now.")
@@ -163,7 +295,7 @@ fun QuickAddContactOverlay(
             item {
                 ListHeader {
                     Text(
-                        text = "Add Preset Contact",
+                        text = "Add Quick Preset",
                         style = MaterialTheme.typography.title3,
                         color = MaterialTheme.colors.primary,
                         textAlign = TextAlign.Center
