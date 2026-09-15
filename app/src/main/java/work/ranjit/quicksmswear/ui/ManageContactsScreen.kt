@@ -30,22 +30,23 @@ import androidx.wear.compose.material.ListHeader
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import work.ranjit.quicksmswear.data.Contact
+import work.ranjit.quicksmswear.data.QrContactParser
 import work.ranjit.quicksmswear.data.SmsTemplate
 
 @Composable
 fun ManageContactsScreen(
     contacts: List<Contact>,
     templates: List<SmsTemplate>,
-    onPickFromPhonebook: () -> Unit,
-    onSyncDeviceContacts: () -> Unit,
+    onOpenNumPad: () -> Unit,
     onAddContact: (String, String, String) -> Unit,
     onUpdateContact: (Contact) -> Unit,
     onDeleteContact: (String) -> Unit,
     onAddTemplate: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    var showAddDialog by remember { mutableStateOf(false) }
+    var showAddPresetDialog by remember { mutableStateOf(false) }
     var selectedContactForEdit by remember { mutableStateOf<Contact?>(null) }
+    var showQrImportDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         ScalingLazyColumn(
@@ -55,7 +56,7 @@ fun ManageContactsScreen(
             item {
                 ListHeader {
                     Text(
-                        text = "⚙️ Contact Settings",
+                        text = "⚙️ Manage Contacts",
                         style = MaterialTheme.typography.title3,
                         color = MaterialTheme.colors.primary,
                         fontWeight = FontWeight.Bold
@@ -63,23 +64,23 @@ fun ManageContactsScreen(
                 }
             }
 
-            // 1. Sync All Device Contacts
+            // 1. Dial / Add Number on Watch
             item {
                 Chip(
-                    onClick = onSyncDeviceContacts,
+                    onClick = onOpenNumPad,
                     colors = ChipDefaults.primaryChipColors(
                         backgroundColor = MaterialTheme.colors.primary
                     ),
                     label = {
                         Text(
-                            text = "🔄 Sync Device Phonebook",
+                            text = "⌨️ Dial Number on Watch",
                             color = Color.Black,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     secondaryLabel = {
                         Text(
-                            text = "Auto-import real phone contacts",
+                            text = "Enter phone number directly",
                             fontSize = 10.sp,
                             color = Color.Black.copy(alpha = 0.7f)
                         )
@@ -88,29 +89,14 @@ fun ManageContactsScreen(
                 )
             }
 
-            // 2. Pick single contact from phonebook
+            // 2. Add Preset Contact
             item {
                 Chip(
-                    onClick = onPickFromPhonebook,
+                    onClick = { showAddPresetDialog = true },
                     colors = ChipDefaults.secondaryChipColors(),
                     label = {
                         Text(
-                            text = "📇 Pick Single Contact",
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                )
-            }
-
-            // 3. Add preset target
-            item {
-                Chip(
-                    onClick = { showAddDialog = true },
-                    colors = ChipDefaults.secondaryChipColors(),
-                    label = {
-                        Text(
-                            text = "+ Add Preset Contact",
+                            text = "+ Add Preset Target",
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -130,7 +116,7 @@ fun ManageContactsScreen(
             if (contacts.isEmpty()) {
                 item {
                     Text(
-                        text = "No contacts saved yet. Tap 'Sync Device Phonebook' above!",
+                        text = "No contacts saved yet. Tap 'Dial Number on Watch' above to add your first contact!",
                         style = MaterialTheme.typography.body2,
                         textAlign = TextAlign.Center,
                         color = Color.LightGray,
@@ -180,13 +166,13 @@ fun ManageContactsScreen(
             }
         }
 
-        if (showAddDialog) {
+        if (showAddPresetDialog) {
             QuickAddContactOverlay(
                 onSave = { name, phone, message ->
                     onAddContact(name, phone, message)
-                    showAddDialog = false
+                    showAddPresetDialog = false
                 },
-                onDismiss = { showAddDialog = false }
+                onDismiss = { showAddPresetDialog = false }
             )
         }
 

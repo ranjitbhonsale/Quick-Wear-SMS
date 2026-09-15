@@ -14,16 +14,17 @@ import work.ranjit.quicksmswear.ui.ConfirmationOverlay
 import work.ranjit.quicksmswear.ui.MainSmsScreen
 import work.ranjit.quicksmswear.ui.ManageContactsScreen
 import work.ranjit.quicksmswear.ui.QuickSmsViewModel
+import work.ranjit.quicksmswear.ui.WatchNumPadScreen
 
 enum class Screen {
     Main,
-    ManageContacts
+    ManageContacts,
+    NumPad
 }
 
 @Composable
 fun AppNavigation(
     onRequestPermission: () -> Unit,
-    onPickContactFromPhonebook: () -> Unit,
     viewModel: QuickSmsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -54,9 +55,8 @@ fun AppNavigation(
                 ManageContactsScreen(
                     contacts = uiState.contacts,
                     templates = uiState.templates,
-                    onPickFromPhonebook = onPickContactFromPhonebook,
-                    onSyncDeviceContacts = {
-                        viewModel.syncDeviceContacts()
+                    onOpenNumPad = {
+                        currentScreen = Screen.NumPad
                     },
                     onAddContact = { name, phone, msg ->
                         viewModel.addContact(name, phone, msg)
@@ -72,6 +72,16 @@ fun AppNavigation(
                     },
                     onBack = {
                         currentScreen = Screen.Main
+                    }
+                )
+            }
+            Screen.NumPad -> {
+                WatchNumPadScreen(
+                    onSaveContact = { name, number, defaultMsg ->
+                        viewModel.addContact(name, number, defaultMsg)
+                    },
+                    onBack = {
+                        currentScreen = Screen.ManageContacts
                     }
                 )
             }

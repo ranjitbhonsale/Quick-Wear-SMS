@@ -2,13 +2,10 @@ package work.ranjit.quicksmswear.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.provider.ContactsContract
-import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 
-class ContactRepository(private val context: Context) {
+class ContactRepository(context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences("quick_sms_wear_prefs", Context.MODE_PRIVATE)
@@ -16,27 +13,11 @@ class ContactRepository(private val context: Context) {
     companion object {
         private const val KEY_CONTACTS = "key_contacts"
         private const val KEY_TEMPLATES = "key_templates"
-        private const val KEY_INITIALIZED = "key_initialized"
     }
 
     fun getContacts(): List<Contact> {
-        val isInitialized = prefs.getBoolean(KEY_INITIALIZED, false)
-        if (!isInitialized) {
-            val deviceContacts = fetchDeviceContacts()
-            if (deviceContacts.isNotEmpty()) {
-                saveContacts(deviceContacts)
-                prefs.edit().putBoolean(KEY_INITIALIZED, true).apply()
-                return deviceContacts
-            }
-        }
-
         val jsonString = prefs.getString(KEY_CONTACTS, null)
         if (jsonString.isNullOrEmpty()) {
-            val deviceContacts = fetchDeviceContacts()
-            if (deviceContacts.isNotEmpty()) {
-                saveContacts(deviceContacts)
-                return deviceContacts
-            }
             return emptyList()
         }
 
@@ -57,79 +38,8 @@ class ContactRepository(private val context: Context) {
             list
         } catch (e: Exception) {
             e.printStackTrace()
-            fetchDeviceContacts()
+            emptyList()
         }
-    }
-
-    fun syncDeviceContacts(): List<Contact> {
-        val deviceContacts = fetchDeviceContacts()
-        if (deviceContacts.isNotEmpty()) {
-            val current = getContacts().toMutableList()
-            val existingNumbers = current.map { it.phoneNumber.replace("\\s".toRegex(), "") }.toSet()
-            
-            deviceContacts.forEach { newContact ->
-                val cleanNum = newContact.phoneNumber.replace("\\s".toRegex(), "")
-                if (!existingNumbers.contains(cleanNum)) {
-                    current.add(newContact)
-                }
-            }
-            saveContacts(current)
-            prefs.edit().putBoolean(KEY_INITIALIZED, true).apply()
-            return current
-        }
-        return getContacts()
-    }
-
-    fun fetchDeviceContacts(): List<Contact> {
-        val hasPermission = ContextCompat.checkSelfPermission(
-            context,
-            android.Manifest.permission.READ_CONTACTS
-        ) == PackageManager.PERMISSION_GRANTED
-
-        if (!hasPermission) return emptyList()
-
-        val list = mutableListOf<Contact>()
-        val seenNumbers = mutableSetOf<String>()
-
-        try {
-            val projection = arrayOf(
-                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                ContactsContract.CommonDataKinds.Phone.NUMBER
-            )
-            val sortOrder = "${ContactsContract.CommonDataKinds.Phone.STARRED} DESC, ${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} ASC"
-
-            context.contentResolver.query(
-                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                projection,
-                null,
-                null,
-                sortOrder
-            )?.use { cursor ->
-                val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
-                val numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-
-                while (cursor.moveToNext() && list.size < 15) {
-                    val name = if (nameIndex >= 0) cursor.getString(nameIndex) ?: "Contact" else "Contact"
-                    val rawNumber = if (numberIndex >= 0) cursor.getString(numberIndex) ?: "" else ""
-                    val cleanNumber = rawNumber.replace("\\s".toRegex(), "")
-
-                    if (cleanNumber.isNotBlank() && !seenNumbers.contains(cleanNumber)) {
-                        seenNumbers.add(cleanNumber)
-                        list.add(
-                            Contact(
-                                name = name,
-                                phoneNumber = rawNumber,
-                                defaultMessage = "I'm sending a quick message from my watch!"
-                            )
-                        )
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return list
     }
 
     fun saveContacts(contacts: List<Contact>) {

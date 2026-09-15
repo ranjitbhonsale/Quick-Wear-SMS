@@ -1,10 +1,7 @@
 package work.ranjit.quicksmswear
 
 import android.Manifest
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.ContactsContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,35 +22,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val contactPickerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val contactUri: Uri? = result.data?.data
-            if (contactUri != null) {
-                try {
-                    val projection = arrayOf(
-                        ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                        ContactsContract.CommonDataKinds.Phone.NUMBER
-                    )
-                    contentResolver.query(contactUri, projection, null, null, null)?.use { cursor ->
-                        if (cursor.moveToFirst()) {
-                            val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
-                            val numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                            val name = if (nameIndex >= 0) cursor.getString(nameIndex) else "Quick Contact"
-                            val number = if (numberIndex >= 0) cursor.getString(numberIndex) else ""
-                            if (number.isNotBlank()) {
-                                viewModel.addContact(name, number, "I'm sending a quick message from my watch!")
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -63,14 +31,9 @@ class MainActivity : ComponentActivity() {
                     onRequestPermission = {
                         requestPermissionLauncher.launch(
                             arrayOf(
-                                Manifest.permission.SEND_SMS,
-                                Manifest.permission.READ_CONTACTS
+                                Manifest.permission.SEND_SMS
                             )
                         )
-                    },
-                    onPickContactFromPhonebook = {
-                        val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
-                        contactPickerLauncher.launch(intent)
                     },
                     viewModel = viewModel
                 )
