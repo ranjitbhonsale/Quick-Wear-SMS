@@ -51,7 +51,17 @@ class QuickSmsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun checkPermission() {
-        _uiState.update { it.copy(hasPermission = smsSender.hasSmsPermission()) }
+        val hasPermission = smsSender.hasSmsPermission()
+        _uiState.update { it.copy(hasPermission = hasPermission) }
+        if (hasPermission) {
+            syncDeviceContacts()
+        }
+    }
+
+    fun syncDeviceContacts() {
+        val contacts = repository.syncDeviceContacts()
+        val templates = repository.getTemplates()
+        _uiState.update { it.copy(contacts = contacts, templates = templates) }
     }
 
     fun loadData() {

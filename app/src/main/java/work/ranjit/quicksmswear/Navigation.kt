@@ -55,6 +55,9 @@ fun AppNavigation(
                     contacts = uiState.contacts,
                     templates = uiState.templates,
                     onPickFromPhonebook = onPickContactFromPhonebook,
+                    onSyncDeviceContacts = {
+                        viewModel.syncDeviceContacts()
+                    },
                     onAddContact = { name, phone, msg ->
                         viewModel.addContact(name, phone, msg)
                     },

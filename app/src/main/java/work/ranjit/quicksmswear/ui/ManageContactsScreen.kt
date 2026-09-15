@@ -37,6 +37,7 @@ fun ManageContactsScreen(
     contacts: List<Contact>,
     templates: List<SmsTemplate>,
     onPickFromPhonebook: () -> Unit,
+    onSyncDeviceContacts: () -> Unit,
     onAddContact: (String, String, String) -> Unit,
     onUpdateContact: (Contact) -> Unit,
     onDeleteContact: (String) -> Unit,
@@ -62,23 +63,23 @@ fun ManageContactsScreen(
                 }
             }
 
-            // 1. Pick directly from Phone contacts on Wear OS
+            // 1. Sync All Device Contacts
             item {
                 Chip(
-                    onClick = onPickFromPhonebook,
+                    onClick = onSyncDeviceContacts,
                     colors = ChipDefaults.primaryChipColors(
                         backgroundColor = MaterialTheme.colors.primary
                     ),
                     label = {
                         Text(
-                            text = "📇 Pick from Device Contacts",
+                            text = "🔄 Sync Device Phonebook",
                             color = Color.Black,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     secondaryLabel = {
                         Text(
-                            text = "Select from watch phonebook",
+                            text = "Auto-import real phone contacts",
                             fontSize = 10.sp,
                             color = Color.Black.copy(alpha = 0.7f)
                         )
@@ -87,7 +88,22 @@ fun ManageContactsScreen(
                 )
             }
 
-            // 2. Add preset target
+            // 2. Pick single contact from phonebook
+            item {
+                Chip(
+                    onClick = onPickFromPhonebook,
+                    colors = ChipDefaults.secondaryChipColors(),
+                    label = {
+                        Text(
+                            text = "📇 Pick Single Contact",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                )
+            }
+
+            // 3. Add preset target
             item {
                 Chip(
                     onClick = { showAddDialog = true },
@@ -111,29 +127,41 @@ fun ManageContactsScreen(
                 )
             }
 
-            items(contacts) { contact ->
-                Chip(
-                    onClick = { selectedContactForEdit = contact },
-                    colors = ChipDefaults.secondaryChipColors(),
-                    label = {
-                        Text(
-                            text = contact.name,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    secondaryLabel = {
-                        Text(
-                            text = "${contact.phoneNumber} • \"${contact.defaultMessage}\"",
-                            fontSize = 10.sp,
-                            color = Color.LightGray,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                )
+            if (contacts.isEmpty()) {
+                item {
+                    Text(
+                        text = "No contacts saved yet. Tap 'Sync Device Phonebook' above!",
+                        style = MaterialTheme.typography.body2,
+                        textAlign = TextAlign.Center,
+                        color = Color.LightGray,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            } else {
+                items(contacts) { contact ->
+                    Chip(
+                        onClick = { selectedContactForEdit = contact },
+                        colors = ChipDefaults.secondaryChipColors(),
+                        label = {
+                            Text(
+                                text = contact.name,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        secondaryLabel = {
+                            Text(
+                                text = "${contact.phoneNumber} • \"${contact.defaultMessage}\"",
+                                fontSize = 10.sp,
+                                color = Color.LightGray,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                    )
+                }
             }
 
             item {
